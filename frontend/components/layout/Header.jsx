@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, ShoppingCart, X } from "lucide-react";
 import Container from "../ui/Container";
+import { useCart } from "../../lib/cartContext";
+import CartDrawer from "../cart/CartDrawer";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -24,10 +26,12 @@ function isActive(pathname, href) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function Header({ cartCount = 0 }) {
+export default function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { totalItemCount } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -38,6 +42,10 @@ export default function Header({ cartCount = 0 }) {
 
   useEffect(() => {
     setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    setCartOpen(false);
   }, [pathname]);
 
   return (
@@ -97,6 +105,10 @@ export default function Header({ cartCount = 0 }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => {
+                setCartOpen(true);
+                setMenuOpen(false);
+              }}
               className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 scrolled
                   ? "border-navy/20 text-navy hover:bg-navy/5 focus-visible:ring-navy focus-visible:ring-offset-offwhite"
@@ -106,7 +118,7 @@ export default function Header({ cartCount = 0 }) {
             >
               <ShoppingCart className="h-5 w-5" aria-hidden="true" />
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-beige px-1 text-xs font-semibold text-navy">
-                {cartCount}
+                {totalItemCount}
               </span>
             </button>
 
@@ -131,6 +143,8 @@ export default function Header({ cartCount = 0 }) {
           </div>
         </div>
       </Container>
+
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <AnimatePresence>
         {menuOpen && (

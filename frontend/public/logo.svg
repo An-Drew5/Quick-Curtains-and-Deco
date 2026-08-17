@@ -1,4 +1,18 @@
-<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="160" height="160" rx="24" fill="#1B2942"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#D8C6A0" font-size="12" font-family="Arial, sans-serif">Logo pending</text>
+<svg width="680" height="430" viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Quick Curtains and Decor</title>
+<circle cx="340" cy="175" r="112" fill="#1B2942"/>
+<circle cx="340" cy="175" r="112" fill="none" stroke="#D8C6A0" stroke-width="1.5"/>
+<line x1="272" y1="118" x2="408" y2="118" stroke="#D8C6A0" stroke-width="3" stroke-linecap="round"/>
+<circle cx="272" cy="118" r="4" fill="#D8C6A0"/>
+<circle cx="408" cy="118" r="4" fill="#D8C6A0"/>
+<path d="M 285 122 Q 270 170 282 228 Q 292 232 300 228 Q 288 172 300 124 Z" fill="#F2EBDD"/>
+<path d="M 302 122 Q 288 172 300 226 Q 310 230 318 226 Q 305 172 316 122 Z" fill="#D8C6A0"/>
+<path d="M 320 122 Q 306 172 318 230 Q 328 234 338 230 Q 322 172 335 122 Z" fill="#F2EBDD"/>
+<path d="M 340 122 Q 325 172 338 232 Q 348 236 358 232 Q 342 172 356 122 Z" fill="#D8C6A0"/>
+<path d="M 358 122 Q 344 172 357 230 Q 366 234 376 230 Q 360 172 373 122 Z" fill="#F2EBDD"/>
+<path d="M 375 122 Q 362 172 374 228 Q 383 232 391 228 Q 377 172 389 122 Z" fill="#D8C6A0"/>
+<path d="M 391 122 Q 380 170 389 224 Q 397 228 405 224 Q 393 170 405 122 Z" fill="#F2EBDD"/>
+<text x="340" y="335" text-anchor="middle" font-size="34" font-weight="700" fill="#1B2942" letter-spacing="1" font-family="Georgia, 'Times New Roman', serif">Quick Curtains</text>
+<text x="340" y="372" text-anchor="middle" font-size="34" font-weight="700" fill="#1B2942" letter-spacing="1" font-family="Georgia, 'Times New Roman', serif">&amp; Decor</text>
+<text x="340" y="402" text-anchor="middle" font-size="13" fill="#8A8578" font-family="Georgia, serif" letter-spacing="3">CURTAINS · BLINDS · WALLPAPERS · BEDSHEETS</text>
 </svg>
