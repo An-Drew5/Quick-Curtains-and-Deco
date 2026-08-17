@@ -184,6 +184,12 @@ export async function createOrderAndInitializePayment(req, res, next) {
     // Paystack expects the amount in the smallest currency unit.
     // This uses a x100 conversion (e.g. NGN naira -> kobo, GHS cedi -> pesewas).
     const amountMinorUnit = toMinorUnit(totalAmountBase);
+    const paystackReference = `qcd_${createdOrder.id}_${Date.now()}`;
+    const frontendBaseUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(
+      /\/+$/,
+      "",
+    );
+    const callbackUrl = `${frontendBaseUrl}/order/confirmation?reference=${encodeURIComponent(paystackReference)}`;
 
     const paystackInit = await initializePaystackTransaction({
       email: email.trim(),
@@ -191,6 +197,8 @@ export async function createOrderAndInitializePayment(req, res, next) {
       metadata: {
         order_id: createdOrder.id,
       },
+      reference: paystackReference,
+      callbackUrl,
     });
 
     await prisma.transaction.create({

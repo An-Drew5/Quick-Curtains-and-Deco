@@ -35,6 +35,8 @@ async function initializePaystackTransaction({
   email,
   amountMinorUnit,
   metadata,
+  reference,
+  callbackUrl,
 }) {
   const response = await fetch(`${PAYSTACK_API_BASE}/transaction/initialize`, {
     method: "POST",
@@ -46,6 +48,8 @@ async function initializePaystackTransaction({
       email,
       amount: amountMinorUnit,
       metadata,
+      reference,
+      callback_url: callbackUrl,
     }),
   });
 

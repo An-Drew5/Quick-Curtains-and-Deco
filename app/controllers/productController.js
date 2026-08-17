@@ -22,12 +22,12 @@ function buildProductResponse(product) {
           slug: product.category.slug,
         }
       : null,
-    thumbnail: product.product_media?.length
+    thumbnail: product.media?.length
       ? {
-          id: product.product_media[0].id,
-          url: product.product_media[0].url,
-          type: product.product_media[0].type,
-          sort_order: product.product_media[0].sort_order,
+          id: product.media[0].id,
+          url: product.media[0].url,
+          type: product.media[0].type,
+          sort_order: product.media[0].sort_order,
         }
       : null,
   };
@@ -57,7 +57,7 @@ async function listProducts(req, res, next) {
       take: pageLimit,
       include: {
         category: true,
-        product_media: {
+        media: {
           orderBy: { sort_order: "asc" },
           take: 1,
         },
@@ -89,7 +89,7 @@ async function getProductDetail(req, res, next) {
       where: { slug },
       include: {
         category: true,
-        product_media: {
+        media: {
           orderBy: { sort_order: "asc" },
         },
       },
