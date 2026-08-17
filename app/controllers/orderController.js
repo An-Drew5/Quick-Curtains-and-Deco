@@ -46,7 +46,9 @@ function mapAndValidateItems(items) {
 
   for (const item of items) {
     if (!item || typeof item !== "object") {
-      return { error: "Each item must be an object with product_id and quantity." };
+      return {
+        error: "Each item must be an object with product_id and quantity.",
+      };
     }
 
     const productIdError = validateNonEmpty(item.product_id, "product_id");
@@ -78,10 +80,13 @@ export async function createOrderAndInitializePayment(req, res, next) {
     ].filter(Boolean);
 
     if (fieldErrors.length > 0) {
-      return res.status(400).json({ success: false, error: fieldErrors.join(" ") });
+      return res
+        .status(400)
+        .json({ success: false, error: fieldErrors.join(" ") });
     }
 
-    const { error: itemsError, quantitiesByProductId } = mapAndValidateItems(items);
+    const { error: itemsError, quantitiesByProductId } =
+      mapAndValidateItems(items);
     if (itemsError) {
       return res.status(400).json({ success: false, error: itemsError });
     }
@@ -99,7 +104,9 @@ export async function createOrderAndInitializePayment(req, res, next) {
       },
     });
 
-    const productById = new Map(products.map((product) => [product.id, product]));
+    const productById = new Map(
+      products.map((product) => [product.id, product]),
+    );
 
     for (const productId of productIds) {
       const product = productById.get(productId);
@@ -351,7 +358,9 @@ export async function getAdminOrderById(req, res, next) {
     });
 
     if (!order) {
-      return res.status(404).json({ success: false, error: "Order not found." });
+      return res
+        .status(404)
+        .json({ success: false, error: "Order not found." });
     }
 
     return res.json({ success: true, data: order });

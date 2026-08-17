@@ -28,7 +28,9 @@ export async function handlePaystackWebhook(req, res, next) {
     const rawBody = req.body;
 
     if (!Buffer.isBuffer(rawBody)) {
-      return res.status(400).json({ success: false, error: "Invalid raw body." });
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid raw body." });
     }
 
     const signature = req.headers["x-paystack-signature"];
@@ -39,14 +41,18 @@ export async function handlePaystackWebhook(req, res, next) {
       .digest("hex");
 
     if (!safeSignatureMatch(computedSignature, signature)) {
-      return res.status(401).json({ success: false, error: "Invalid webhook signature." });
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid webhook signature." });
     }
 
     const payload = JSON.parse(rawBody.toString("utf8"));
     const event = String(payload?.event || "");
     const reference = payload?.data?.reference || null;
 
-    console.log(`[paystack-webhook] event=${event} reference=${reference || "n/a"}`);
+    console.log(
+      `[paystack-webhook] event=${event} reference=${reference || "n/a"}`,
+    );
 
     if (reference && event === "charge.success") {
       await applyTransactionPaymentResult({

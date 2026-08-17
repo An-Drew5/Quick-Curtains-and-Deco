@@ -18,7 +18,9 @@ async function applyTransactionPaymentResult({ reference, status, source }) {
   }
 
   if (existing.status === "success" && normalizedStatus === "failed") {
-    const order = await prisma.order.findUnique({ where: { id: existing.order_id } });
+    const order = await prisma.order.findUnique({
+      where: { id: existing.order_id },
+    });
     return { transaction: existing, order };
   }
 

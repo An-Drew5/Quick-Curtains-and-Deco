@@ -31,7 +31,11 @@ function toMinorUnit(amountInBaseUnits) {
   return Math.round(Number(amountInBaseUnits) * PAYSTACK_MINOR_UNIT_MULTIPLIER);
 }
 
-async function initializePaystackTransaction({ email, amountMinorUnit, metadata }) {
+async function initializePaystackTransaction({
+  email,
+  amountMinorUnit,
+  metadata,
+}) {
   const response = await fetch(`${PAYSTACK_API_BASE}/transaction/initialize`, {
     method: "POST",
     headers: {
@@ -48,7 +52,8 @@ async function initializePaystackTransaction({ email, amountMinorUnit, metadata 
   const payload = await response.json();
 
   if (!response.ok || !payload?.status) {
-    const message = payload?.message || "Failed to initialize Paystack payment.";
+    const message =
+      payload?.message || "Failed to initialize Paystack payment.";
     const error = new Error(message);
     error.statusCode = 502;
     throw error;
@@ -71,7 +76,8 @@ async function verifyPaystackTransaction(reference) {
   const payload = await response.json();
 
   if (!response.ok || !payload?.status) {
-    const message = payload?.message || "Failed to verify Paystack transaction.";
+    const message =
+      payload?.message || "Failed to verify Paystack transaction.";
     const error = new Error(message);
     error.statusCode = 502;
     throw error;
