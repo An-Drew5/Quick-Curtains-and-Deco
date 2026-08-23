@@ -5,6 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import PaginationControls from "../../../components/admin/PaginationControls";
 import StatusBadge from "../../../components/admin/StatusBadge";
 import { apiFetch } from "../../../lib/api";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../../lib/cloudinaryImage";
 
 export default function AdminGalleryPage() {
   const [items, setItems] = useState([]);
@@ -44,7 +48,9 @@ export default function AdminGalleryPage() {
         if (search.trim()) query.set("search", search.trim());
         if (selectedCategory !== "all") query.set("category", selectedCategory);
 
-        const payload = await apiFetch(`/api/products?${query.toString()}`);
+        const payload = await apiFetch(
+          `/api/admin/products?${query.toString()}`,
+        );
         if (!active) return;
 
         const products = payload?.data?.products || [];
@@ -78,7 +84,7 @@ export default function AdminGalleryPage() {
     if (!confirmed) return;
 
     try {
-      await apiFetch(`/api/products/${itemId}`, { method: "DELETE" });
+      await apiFetch(`/api/admin/products/${itemId}`, { method: "DELETE" });
       setItems((current) => current.filter((item) => item.id !== itemId));
     } catch (deleteError) {
       setError(deleteError.message.replace(/^API error \(\d+\):\s*/, ""));
@@ -89,7 +95,9 @@ export default function AdminGalleryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <header>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted">Showcase</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted">
+            Showcase
+          </p>
           <h1 className="mt-2 font-display text-3xl text-navy">Gallery</h1>
         </header>
 
@@ -140,7 +148,10 @@ export default function AdminGalleryPage() {
       {loading ? (
         <div className="space-y-2 rounded-2xl border border-navy/10 bg-white p-5">
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="h-10 animate-pulse rounded-lg bg-offwhite2" />
+            <div
+              key={index}
+              className="h-10 animate-pulse rounded-lg bg-offwhite2"
+            />
           ))}
         </div>
       ) : visibleItems.length === 0 ? (
@@ -161,13 +172,18 @@ export default function AdminGalleryPage() {
               </thead>
               <tbody>
                 {visibleItems.map((item) => (
-                  <tr key={item.id} className="border-b border-navy/5 last:border-0">
+                  <tr
+                    key={item.id}
+                    className="border-b border-navy/5 last:border-0"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 overflow-hidden rounded-xl border border-navy/10 bg-offwhite2">
                           {item.thumbnail?.url ? (
                             <img
-                              src={item.thumbnail.url}
+                              src={cloudinaryImageUrl(item.thumbnail.url, {
+                                width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                              })}
                               alt={item.name}
                               className="h-full w-full object-cover"
                             />
@@ -183,7 +199,9 @@ export default function AdminGalleryPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted">{item.category?.name || "-"}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {item.category?.name || "-"}
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={item.stock_status} />
                     </td>

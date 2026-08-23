@@ -8,6 +8,10 @@ import Section from "../ui/Section";
 import Card from "../ui/Card";
 import Button from "../ui/Button";
 import { apiFetch } from "../../lib/api";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../lib/cloudinaryImage";
 
 function normalizeProducts(payload) {
   if (Array.isArray(payload)) {
@@ -141,9 +145,12 @@ export default function FeaturedProducts() {
                   {thumbnailUrl ? (
                     <div className="relative h-44 overflow-hidden rounded-xl bg-offwhite">
                       <Image
-                        src={thumbnailUrl}
+                        src={cloudinaryImageUrl(thumbnailUrl, {
+                          width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                        })}
                         alt={product.name || "Product image"}
                         fill
+                        unoptimized
                         sizes="(max-width: 768px) 80vw, (max-width: 1024px) 45vw, 30vw"
                         className="object-cover"
                       />

@@ -14,7 +14,11 @@ const navItems = [
 const socialLinks = [
   { label: "Instagram", href: "#", Icon: Camera },
   { label: "Facebook", href: "#", Icon: Users },
-  { label: "WhatsApp", href: "#", Icon: MessageCircle },
+  {
+    label: "WhatsApp",
+    href: "https://wa.me/233546153010",
+    Icon: MessageCircle,
+  },
 ];
 
 export default function Footer() {
@@ -61,9 +65,17 @@ export default function Footer() {
           <div>
             <h2 className="font-display text-lg">Contact</h2>
             <ul className="mt-4 space-y-3 text-sm text-offwhite/85">
-              <li>Phone: +000 000 000 0000</li>
-              <li>Email: hello@example-decor.com</li>
-              <li>Address: 123 Placeholder Ave, Accra</li>
+              <li>
+                Phone: <a href="tel:0542936070">0542936070</a> /{" "}
+                <a href="tel:0546153010">0546153010</a>
+              </li>
+              <li>
+                Email:{" "}
+                <a href="mailto:andrews.oppongx@gmail.com">
+                  andrews.oppongx@gmail.com
+                </a>
+              </li>
+              <li>Address: Kumasi - Tech, Top High</li>
             </ul>
           </div>
 
@@ -75,6 +87,8 @@ export default function Footer() {
                   key={label}
                   href={href}
                   aria-label={label}
+                  target={label === "WhatsApp" ? "_blank" : undefined}
+                  rel={label === "WhatsApp" ? "noopener noreferrer" : undefined}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-offwhite/30 text-offwhite transition-colors hover:border-beige hover:text-beige focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-beige focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
                 >
                   <Icon className="h-5 w-5" aria-hidden="true" />

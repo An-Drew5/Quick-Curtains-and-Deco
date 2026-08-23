@@ -6,6 +6,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { PackageSearch, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiFetch } from "../../lib/api";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../lib/cloudinaryImage";
 import Section from "../ui/Section";
 import Container from "../ui/Container";
 import Card from "../ui/Card";
@@ -322,9 +326,12 @@ export default function ShopCatalog() {
 
                           {product.thumbnail?.url ? (
                             <Image
-                              src={product.thumbnail.url}
+                              src={cloudinaryImageUrl(product.thumbnail.url, {
+                                width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                              })}
                               alt={product.name}
                               fill
+                              unoptimized
                               sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                               className="object-cover transition-transform duration-300 group-hover:scale-105"
                             />

@@ -1,12 +1,11 @@
-import dotenv from "dotenv";
-
-dotenv.config();
+import "dotenv/config";
 
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
-import prisma from "../lib/prisma.js";
 import authRouter from "../routes/auth.js";
+import adminDashboardRouter from "../routes/adminDashboard.js";
+import adminProductsRouter from "../routes/adminProducts.js";
 import adminOrdersRouter from "../routes/adminOrders.js";
 import categoriesRouter from "../routes/categories.js";
 import ordersRouter from "../routes/orders.js";
@@ -32,13 +31,8 @@ app.use(cookieParser());
 app.use("/api/webhooks/paystack", express.raw({ type: "application/json" }));
 app.use(express.json());
 
-app.get("/health", async (_req, res, next) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ success: true, data: { message: "Prisma connected" } });
-  } catch (error) {
-    next(error);
-  }
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
 });
 
 app.use("/api/auth", authRouter);
@@ -47,6 +41,8 @@ app.use("/api/categories", categoriesRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/orders", ordersRouter);
+app.use("/api/admin", adminDashboardRouter);
+app.use("/api/admin/products", adminProductsRouter);
 app.use("/api/admin/orders", adminOrdersRouter);
 
 app.use(errorHandler);

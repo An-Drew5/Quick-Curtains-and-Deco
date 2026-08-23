@@ -3,6 +3,7 @@ import requireAdmin from "../middleware/requireAdmin.js";
 import {
   listProducts,
   getProductDetail,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -14,6 +15,7 @@ import {
 const router = express.Router();
 
 router.get("/", listProducts);
+router.get("/by-id/:id", requireAdmin, getProductById);
 router.get("/:slug", getProductDetail);
 router.post("/", requireAdmin, createProduct);
 router.put("/:id", requireAdmin, updateProduct);

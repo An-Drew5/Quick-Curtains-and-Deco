@@ -35,11 +35,20 @@ function buildProductResponse(product) {
 
 async function listProducts(req, res, next) {
   try {
-    const { category, search, page = 1, limit = 20 } = req.query;
+    const { category, search, page = 1, limit = 20, is_custom } = req.query;
     const pageNumber = Number(page) || 1;
     const pageLimit = Number(limit) || 20;
 
     const filters = {};
+
+    if (is_custom !== undefined) {
+      const normalizedIsCustom = String(is_custom).toLowerCase();
+      if (normalizedIsCustom === "true") {
+        filters.is_custom = true;
+      } else if (normalizedIsCustom === "false") {
+        filters.is_custom = false;
+      }
+    }
 
     if (category) {
       filters.category = { slug: category };
@@ -76,6 +85,30 @@ async function listProducts(req, res, next) {
         totalPages,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getProductById(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        media: {
+          orderBy: { sort_order: "asc" },
+        },
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({ success: false, error: "Product not found." });
+    }
+
+    return res.json({ success: true, data: product });
   } catch (error) {
     next(error);
   }
@@ -361,10 +394,10 @@ async function reorderMedia(req, res, next) {
 export {
   listProducts,
   getProductDetail,
+  getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  // Media handlers
   createMedia,
   deleteMedia,
   reorderMedia,

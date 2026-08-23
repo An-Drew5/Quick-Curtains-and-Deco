@@ -1,8 +1,56 @@
-import { SwatchBook } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Section from "../ui/Section";
 import Button from "../ui/Button";
+import { apiFetch } from "../../lib/api";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../lib/cloudinaryImage";
+
+function getThumbnailUrl(item) {
+  return item?.thumbnail?.url || null;
+}
 
 export default function CustomGalleryTeaser() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadGalleryPreview() {
+      try {
+        const response = await apiFetch("/api/products?is_custom=true&limit=4&page=1");
+        if (!active) {
+          return;
+        }
+
+        const products = Array.isArray(response?.data?.products)
+          ? response.data.products
+          : [];
+        setItems(products.slice(0, 4));
+      } catch (_error) {
+        if (!active) {
+          return;
+        }
+        setItems([]);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadGalleryPreview();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <Section background="navy">
       <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -20,20 +68,34 @@ export default function CustomGalleryTeaser() {
           </Button>
         </div>
 
-        {/* Placeholder tile blocks until real custom-gallery imagery is available. */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-2xl border border-offwhite/25 bg-gradient-to-br from-navy via-[#243654] to-[#31476d]"
-            >
-              <div className="absolute inset-0 opacity-15 [background-image:radial-gradient(circle_at_1px_1px,_#F2EBDD_1px,_transparent_0)] [background-size:14px_14px]" />
-              <SwatchBook
-                className="relative h-8 w-8 text-beige"
-                aria-hidden="true"
-              />
-            </div>
-          ))}
+          {(loading ? Array.from({ length: 4 }) : items).map((item, index) => {
+            const imageUrl = getThumbnailUrl(item);
+
+            return (
+              <div
+                key={item?.id || `skeleton-${index}`}
+                className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-offwhite/25 bg-slate-200"
+              >
+                {loading ? (
+                  <div className="h-full w-full animate-pulse bg-slate-300/70" />
+                ) : imageUrl ? (
+                  <Image
+                    src={cloudinaryImageUrl(imageUrl, {
+                      width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                    })}
+                    alt={item.name || "Custom gallery preview"}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 18vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-navy via-[#243654] to-[#31476d]" />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </Section>

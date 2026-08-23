@@ -6,6 +6,10 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "../../lib/cartContext";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../lib/cloudinaryImage";
 import Button from "../ui/Button";
 
 function formatPrice(amount) {
@@ -75,8 +79,13 @@ export default function CartDrawer({ isOpen, onClose }) {
 
             {items.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                <ShoppingBag className="h-11 w-11 text-muted" aria-hidden="true" />
-                <h2 className="mt-4 font-display text-2xl text-navy">Your cart is empty</h2>
+                <ShoppingBag
+                  className="h-11 w-11 text-muted"
+                  aria-hidden="true"
+                />
+                <h2 className="mt-4 font-display text-2xl text-navy">
+                  Your cart is empty
+                </h2>
                 <p className="mt-2 text-sm text-muted">
                   Add products to your cart and they will appear here.
                 </p>
@@ -102,9 +111,12 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <div className="relative h-20 w-20 flex-none overflow-hidden rounded-xl bg-slate-100">
                           {item.image ? (
                             <Image
-                              src={item.image}
+                              src={cloudinaryImageUrl(item.image, {
+                                width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                              })}
                               alt={item.name}
                               fill
+                              unoptimized
                               sizes="80px"
                               className="object-cover"
                             />
@@ -132,7 +144,10 @@ export default function CartDrawer({ isOpen, onClose }) {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  updateQuantity(item.productId, Math.max(1, item.quantity - 1))
+                                  updateQuantity(
+                                    item.productId,
+                                    Math.max(1, item.quantity - 1),
+                                  )
                                 }
                                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-ink transition hover:border-navy hover:text-navy"
                                 aria-label={`Decrease quantity of ${item.name}`}
@@ -144,7 +159,12 @@ export default function CartDrawer({ isOpen, onClose }) {
                               </span>
                               <button
                                 type="button"
-                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                onClick={() =>
+                                  updateQuantity(
+                                    item.productId,
+                                    item.quantity + 1,
+                                  )
+                                }
                                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-ink transition hover:border-navy hover:text-navy"
                                 aria-label={`Increase quantity of ${item.name}`}
                               >
@@ -170,9 +190,13 @@ export default function CartDrawer({ isOpen, onClose }) {
                 <div className="space-y-4 border-t border-navy/10 bg-white px-5 py-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-muted">Subtotal</p>
-                    <p className="text-lg font-semibold text-ink">{formatPrice(subtotal)}</p>
+                    <p className="text-lg font-semibold text-ink">
+                      {formatPrice(subtotal)}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted">Delivery fee calculated at checkout</p>
+                  <p className="text-xs text-muted">
+                    Delivery fee calculated at checkout
+                  </p>
 
                   <Button
                     href="/checkout"

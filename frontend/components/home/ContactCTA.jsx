@@ -1,7 +1,9 @@
 import Section from "../ui/Section";
 import Button from "../ui/Button";
 
-const WHATSAPP_PLACEHOLDER = "233000000000";
+const WHATSAPP_NUMBER = "233546153010";
+const WHATSAPP_GREETING =
+  "Hi, I'd like to know more about your curtains and decor services";
 
 export default function ContactCTA() {
   return (
@@ -25,7 +27,7 @@ export default function ContactCTA() {
             Contact Us
           </Button>
           <Button
-            href={`https://wa.me/${WHATSAPP_PLACEHOLDER}`}
+            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_GREETING)}`}
             size="lg"
             variant="outline"
             className="w-full border-offwhite/80 text-offwhite hover:border-offwhite hover:bg-offwhite hover:text-navy sm:w-auto"

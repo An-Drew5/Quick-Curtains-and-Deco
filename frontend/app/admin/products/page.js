@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
+import {
+  cloudinaryImageUrl,
+  CLOUDINARY_IMAGE_WIDTHS,
+} from "../../../lib/cloudinaryImage";
 
 const STOCK_BADGES = {
   in_stock: "bg-emerald-100 text-emerald-700",
@@ -49,11 +53,18 @@ export default function AdminProductsPage() {
       setError("");
 
       try {
-        const params = new URLSearchParams({ page: String(page), limit: "10", is_custom: "false" });
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: "10",
+          is_custom: "false",
+        });
         if (search.trim()) params.set("search", search.trim());
-        if (selectedCategory !== "all") params.set("category", selectedCategory);
+        if (selectedCategory !== "all")
+          params.set("category", selectedCategory);
 
-        const payload = await apiFetch(`/api/products?${params.toString()}`);
+        const payload = await apiFetch(
+          `/api/admin/products?${params.toString()}`,
+        );
         if (ignore) return;
 
         setProducts(payload.data?.products || []);
@@ -86,10 +97,12 @@ export default function AdminProductsPage() {
     if (!confirmed) return;
 
     try {
-      await apiFetch(`/api/products/${productId}`, {
+      await apiFetch(`/api/admin/products/${productId}`, {
         method: "DELETE",
       });
-      setProducts((current) => current.filter((product) => product.id !== productId));
+      setProducts((current) =>
+        current.filter((product) => product.id !== productId),
+      );
     } catch (deleteError) {
       setError(deleteError.message);
     }
@@ -99,7 +112,9 @@ export default function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted">Inventory</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted">
+            Inventory
+          </p>
           <h1 className="mt-2 font-display text-3xl text-navy">Products</h1>
         </div>
 
@@ -170,26 +185,43 @@ export default function AdminProductsPage() {
               </thead>
               <tbody>
                 {visibleProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-navy/5 last:border-0">
+                  <tr
+                    key={product.id}
+                    className="border-b border-navy/5 last:border-0"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 overflow-hidden rounded-xl border border-navy/10 bg-offwhite2">
                           {product.thumbnail?.url ? (
-                            <img src={product.thumbnail.url} alt={product.name} className="h-full w-full object-cover" />
+                            <img
+                              src={cloudinaryImageUrl(product.thumbnail.url, {
+                                width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
+                              })}
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] text-muted">IMG</div>
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-muted">
+                              IMG
+                            </div>
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-navy">{product.name}</p>
+                          <p className="font-medium text-navy">
+                            {product.name}
+                          </p>
                           <p className="text-xs text-muted">{product.slug}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted">{product.category?.name || "—"}</td>
+                    <td className="px-4 py-3 text-muted">
+                      {product.category?.name || "—"}
+                    </td>
                     <td className="px-4 py-3">{formatMoney(product.price)}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${STOCK_BADGES[product.stock_status] || "bg-slate-100 text-slate-700"}`}>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${STOCK_BADGES[product.stock_status] || "bg-slate-100 text-slate-700"}`}
+                      >
                         {product.stock_status}
                       </span>
                     </td>
@@ -233,7 +265,9 @@ export default function AdminProductsPage() {
           </span>
           <button
             type="button"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
             disabled={page === totalPages}
             className="rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm text-navy disabled:cursor-not-allowed disabled:opacity-50"
           >

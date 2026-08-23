@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import {
   getDeliveryFlatFee,
@@ -13,6 +14,8 @@ const NON_ORDERABLE_STOCK_STATUSES = new Set([
   "unavailable",
   "discontinued",
 ]);
+const IDEMPOTENCY_RACE_RETRY_ATTEMPTS = 2;
+const IDEMPOTENCY_RACE_RETRY_DELAY_MS = 150;
 
 function validateNonEmpty(value, fieldName) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -68,9 +71,262 @@ function mapAndValidateItems(items) {
   return { quantitiesByProductId };
 }
 
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function buildIdempotencyPaymentUnavailableError(message) {
+  const error = new Error(message);
+  error.statusCode = 502;
+  error.code = "PAYMENT_PROVIDER_UNAVAILABLE";
+  return error;
+}
+
+function buildIdempotencyRetryReference(orderId) {
+  return `qcd_${orderId}_retry`;
+}
+
+function getFrontendBaseUrl() {
+  return process.env.FRONTEND_URL.replace(/\/+$/, "");
+}
+
+function buildOrderCallbackUrl(reference) {
+  const frontendBaseUrl = getFrontendBaseUrl();
+  return `${frontendBaseUrl}/order/confirmation?reference=${encodeURIComponent(reference)}`;
+}
+
+function isIdempotencyConflict(error) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== "P2002") {
+    return false;
+  }
+
+  const targets = Array.isArray(error.meta?.target)
+    ? error.meta.target
+    : [error.meta?.target].filter(Boolean);
+
+  return targets.includes("idempotency_key");
+}
+
+async function getOrderPaymentSession(orderId) {
+  const transaction = await prisma.transaction.findFirst({
+    where: { order_id: orderId },
+    select: {
+      paystack_reference: true,
+      authorization_url: true,
+    },
+  });
+
+  if (!transaction?.paystack_reference || !transaction.authorization_url) {
+    return null;
+  }
+
+  return {
+    order_id: orderId,
+    authorization_url: transaction.authorization_url,
+    reference: transaction.paystack_reference,
+  };
+}
+
+async function getOrderTransaction(orderId) {
+  return prisma.transaction.findFirst({
+    where: { order_id: orderId },
+    select: {
+      id: true,
+      paystack_reference: true,
+      authorization_url: true,
+    },
+  });
+}
+
+async function findOrderPaymentSessionWithRaceRetry(orderId) {
+  for (
+    let attempt = 0;
+    attempt < IDEMPOTENCY_RACE_RETRY_ATTEMPTS;
+    attempt += 1
+  ) {
+    const paymentSession = await getOrderPaymentSession(orderId);
+    if (paymentSession) {
+      return paymentSession;
+    }
+
+    if (attempt < IDEMPOTENCY_RACE_RETRY_ATTEMPTS - 1) {
+      await sleep(IDEMPOTENCY_RACE_RETRY_DELAY_MS);
+    }
+  }
+
+  return null;
+}
+
+async function createOrRepairPaymentSessionForExistingOrder(order) {
+  if (!order?.id) {
+    return null;
+  }
+
+  if (!order.email || String(order.email).trim() === "") {
+    throw buildIdempotencyPaymentUnavailableError(
+      "Payment could not be retried for this order because the customer email is missing.",
+    );
+  }
+
+  const existingTransaction = await getOrderTransaction(order.id);
+  const paystackReference =
+    existingTransaction?.paystack_reference ||
+    buildIdempotencyRetryReference(order.id);
+  const amountMinorUnit = toMinorUnit(Number(order.total_amount));
+
+  let paystackInit;
+  try {
+    paystackInit = await initializePaystackTransaction({
+      email: String(order.email).trim(),
+      amountMinorUnit,
+      metadata: {
+        order_id: order.id,
+      },
+      reference: paystackReference,
+      callbackUrl: buildOrderCallbackUrl(paystackReference),
+    });
+  } catch (_error) {
+    throw buildIdempotencyPaymentUnavailableError(
+      "Payment service is temporarily unavailable. Please try again.",
+    );
+  }
+
+  try {
+    const latestTransaction = await getOrderTransaction(order.id);
+
+    if (
+      latestTransaction?.authorization_url &&
+      latestTransaction?.paystack_reference
+    ) {
+      return {
+        order_id: order.id,
+        authorization_url: latestTransaction.authorization_url,
+        reference: latestTransaction.paystack_reference,
+      };
+    }
+
+    if (latestTransaction) {
+      const updatedTransaction = await prisma.transaction.update({
+        where: { id: latestTransaction.id },
+        data: {
+          authorization_url: paystackInit.authorization_url,
+        },
+        select: {
+          paystack_reference: true,
+          authorization_url: true,
+        },
+      });
+
+      return {
+        order_id: order.id,
+        authorization_url: updatedTransaction.authorization_url,
+        reference: updatedTransaction.paystack_reference,
+      };
+    }
+
+    const createdTransaction = await prisma.transaction.create({
+      data: {
+        order_id: order.id,
+        paystack_reference: paystackInit.reference,
+        authorization_url: paystackInit.authorization_url,
+        amount: Number(order.total_amount).toFixed(2),
+        status: "pending",
+      },
+      select: {
+        paystack_reference: true,
+        authorization_url: true,
+      },
+    });
+
+    return {
+      order_id: order.id,
+      authorization_url: createdTransaction.authorization_url,
+      reference: createdTransaction.paystack_reference,
+    };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const paymentSession = await findOrderPaymentSessionWithRaceRetry(
+        order.id,
+      );
+      if (paymentSession) {
+        return paymentSession;
+      }
+    }
+
+    throw error;
+  }
+}
+
+async function findExistingOrderResponseByIdempotencyKey(idempotencyKey) {
+  const existingOrder = await prisma.order.findUnique({
+    where: { idempotency_key: idempotencyKey },
+    select: {
+      id: true,
+      email: true,
+      total_amount: true,
+    },
+  });
+
+  if (!existingOrder) {
+    return null;
+  }
+
+  const paymentSession = await findOrderPaymentSessionWithRaceRetry(
+    existingOrder.id,
+  );
+  if (paymentSession) {
+    return paymentSession;
+  }
+
+  return createOrRepairPaymentSessionForExistingOrder(existingOrder);
+}
+
 export async function createOrderAndInitializePayment(req, res, next) {
   try {
-    const { customer_name, phone, email, address, items } = req.body;
+    const { customer_name, phone, email, address, items, idempotency_key } =
+      req.body;
+
+    const idempotencyKeyError = validateNonEmpty(
+      idempotency_key,
+      "idempotency_key",
+    );
+    if (idempotencyKeyError) {
+      return res
+        .status(400)
+        .json({ success: false, error: idempotencyKeyError });
+    }
+
+    const normalizedIdempotencyKey = idempotency_key.trim();
+
+    let existingOrderResponse;
+    try {
+      existingOrderResponse = await findExistingOrderResponseByIdempotencyKey(
+        normalizedIdempotencyKey,
+      );
+    } catch (lookupError) {
+      if (lookupError?.code === "PAYMENT_PROVIDER_UNAVAILABLE") {
+        return res.status(502).json({
+          success: false,
+          error: lookupError.message,
+        });
+      }
+
+      throw lookupError;
+    }
+
+    if (
+      existingOrderResponse?.authorization_url &&
+      existingOrderResponse.reference
+    ) {
+      return res.json({ success: true, data: existingOrderResponse });
+    }
 
     const fieldErrors = [
       validateNonEmpty(customer_name, "customer_name"),
@@ -157,6 +413,7 @@ export async function createOrderAndInitializePayment(req, res, next) {
     const createdOrder = await prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
         data: {
+          idempotency_key: normalizedIdempotencyKey,
           customer_name: customer_name.trim(),
           phone: phone.trim(),
           email: email.trim(),
@@ -185,11 +442,7 @@ export async function createOrderAndInitializePayment(req, res, next) {
     // This uses a x100 conversion (e.g. NGN naira -> kobo, GHS cedi -> pesewas).
     const amountMinorUnit = toMinorUnit(totalAmountBase);
     const paystackReference = `qcd_${createdOrder.id}_${Date.now()}`;
-    const frontendBaseUrl = (process.env.FRONTEND_URL || "http://localhost:3000").replace(
-      /\/+$/,
-      "",
-    );
-    const callbackUrl = `${frontendBaseUrl}/order/confirmation?reference=${encodeURIComponent(paystackReference)}`;
+    const callbackUrl = buildOrderCallbackUrl(paystackReference);
 
     const paystackInit = await initializePaystackTransaction({
       email: email.trim(),
@@ -205,6 +458,7 @@ export async function createOrderAndInitializePayment(req, res, next) {
       data: {
         order_id: createdOrder.id,
         paystack_reference: paystackInit.reference,
+        authorization_url: paystackInit.authorization_url,
         amount: totalAmountBase.toFixed(2),
         status: "pending",
       },
@@ -219,6 +473,31 @@ export async function createOrderAndInitializePayment(req, res, next) {
       },
     });
   } catch (error) {
+    if (isIdempotencyConflict(error)) {
+      try {
+        const existingOrderResponse =
+          await findExistingOrderResponseByIdempotencyKey(
+            req.body?.idempotency_key?.trim(),
+          );
+
+        if (
+          existingOrderResponse?.authorization_url &&
+          existingOrderResponse.reference
+        ) {
+          return res.json({ success: true, data: existingOrderResponse });
+        }
+      } catch (lookupError) {
+        if (lookupError?.code === "PAYMENT_PROVIDER_UNAVAILABLE") {
+          return res.status(502).json({
+            success: false,
+            error: lookupError.message,
+          });
+        }
+
+        // Fall through to the shared error handler if the recovery lookup fails.
+      }
+    }
+
     next(error);
   }
 }

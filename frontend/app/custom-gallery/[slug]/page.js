@@ -4,44 +4,38 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { ChevronRight, House, ShoppingCart, Minus, Plus } from "lucide-react";
+import { ChevronRight, House, MessageCircle } from "lucide-react";
+import Section from "../../../components/ui/Section";
+import Container from "../../../components/ui/Container";
+import Button from "../../../components/ui/Button";
 import { apiFetch } from "../../../lib/api";
 import {
   cloudinaryImageUrl,
   CLOUDINARY_IMAGE_WIDTHS,
 } from "../../../lib/cloudinaryImage";
-import { useCart } from "../../../lib/cartContext";
-import Section from "../../../components/ui/Section";
-import Container from "../../../components/ui/Container";
-import Button from "../../../components/ui/Button";
-
-function formatPrice(price) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    maximumFractionDigits: 2,
-  }).format(Number(price || 0));
-}
 
 function getProductMedia(product) {
   return Array.isArray(product?.media) ? product.media : [];
 }
 
-export default function ProductDetailPage() {
+function buildWhatsAppUrl(itemName) {
+  const phoneNumber = "PLACEHOLDER_NUMBER";
+  const message = `Hi, I'm interested in ${itemName} from your custom gallery`;
+  return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+}
+
+export default function CustomGalleryDetailPage() {
   const { slug } = useParams();
-  const [product, setProduct] = useState(null);
+  const [item, setItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [toastMessage, setToastMessage] = useState("");
-  const { addItem } = useCart();
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadProduct() {
+    async function loadItem() {
       try {
         setIsLoading(true);
         setNotFound(false);
@@ -52,8 +46,14 @@ export default function ProductDetailPage() {
           return;
         }
 
-        setProduct(response?.data || null);
-        setQuantity(1);
+        const loadedItem = response?.data || null;
+        if (!loadedItem || !loadedItem.is_custom) {
+          setNotFound(true);
+          setItem(null);
+          return;
+        }
+
+        setItem(loadedItem);
         setActiveIndex(0);
       } catch (err) {
         if (!isMounted) {
@@ -63,7 +63,7 @@ export default function ProductDetailPage() {
         if (err.message?.includes("404")) {
           setNotFound(true);
         } else {
-          setError("Unable to load this product right now.");
+          setError("Unable to load this gallery item right now.");
         }
       } finally {
         if (isMounted) {
@@ -73,7 +73,7 @@ export default function ProductDetailPage() {
     }
 
     if (slug) {
-      loadProduct();
+      loadItem();
     }
 
     return () => {
@@ -81,41 +81,8 @@ export default function ProductDetailPage() {
     };
   }, [slug]);
 
-  const media = useMemo(() => getProductMedia(product), [product]);
+  const media = useMemo(() => getProductMedia(item), [item]);
   const activeMedia = media[activeIndex] || media[0];
-  const inStock = product?.stock_status === "in_stock";
-
-  useEffect(() => {
-    if (!toastMessage) return undefined;
-    const timeout = setTimeout(() => setToastMessage(""), 2400);
-    return () => clearTimeout(timeout);
-  }, [toastMessage]);
-
-  function showToast(message) {
-    setToastMessage(message);
-  }
-
-  function handleAddToCart() {
-    if (!product || !inStock) {
-      return;
-    }
-
-    addItem(
-      {
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: product.price,
-        image: activeMedia?.url || media[0]?.url || "",
-      },
-      quantity,
-    );
-    showToast(`Added ${quantity} item${quantity > 1 ? "s" : ""} to cart`);
-  }
-
-  function handleThumbSelect(index) {
-    setActiveIndex(index);
-  }
 
   if (isLoading) {
     return (
@@ -150,16 +117,13 @@ export default function ProductDetailPage() {
       <Section background="offwhite2">
         <Container>
           <div className="rounded-3xl border border-navy/10 bg-white p-10 text-center shadow-sm">
-            <h1 className="font-display text-4xl text-navy">
-              Product not found
-            </h1>
+            <h1 className="font-display text-4xl text-navy">Item not found</h1>
             <p className="mt-3 text-sm text-muted">
-              The item you’re looking for may have been removed or the link is
-              incorrect.
+              The custom gallery item you are looking for may have moved or the link is incorrect.
             </p>
             <div className="mt-6 flex justify-center">
-              <Button href="/shop" variant="primary">
-                Back to Shop
+              <Button href="/custom-gallery" variant="primary">
+                Back to Custom Gallery
               </Button>
             </div>
           </div>
@@ -168,20 +132,18 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (error || !product) {
+  if (error || !item) {
     return (
       <Section background="offwhite2">
         <Container>
           <div className="rounded-3xl border border-navy/10 bg-white p-10 text-center shadow-sm">
-            <h1 className="font-display text-4xl text-navy">
-              Unable to load product
-            </h1>
+            <h1 className="font-display text-4xl text-navy">Unable to load item</h1>
             <p className="mt-3 text-sm text-muted">
               {error || "Please try again in a moment."}
             </p>
             <div className="mt-6 flex justify-center">
-              <Button href="/shop" variant="primary">
-                Back to Shop
+              <Button href="/custom-gallery" variant="primary">
+                Back to Custom Gallery
               </Button>
             </div>
           </div>
@@ -206,18 +168,13 @@ export default function ProductDetailPage() {
               Home
             </Link>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            <Link href="/shop" className="hover:text-navy">
-              Shop
+            <Link href="/custom-gallery" className="hover:text-navy">
+              Custom Gallery
             </Link>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            <Link
-              href={`/shop?category=${product.category?.slug || ""}`}
-              className="hover:text-navy"
-            >
-              {product.category?.name || "Category"}
-            </Link>
+            <span className="text-ink">{item.category?.name || "Category"}</span>
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            <span className="text-ink">{product.name}</span>
+            <span className="text-ink">{item.name}</span>
           </nav>
 
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
@@ -228,7 +185,7 @@ export default function ProductDetailPage() {
                     src={cloudinaryImageUrl(activeMedia.url, {
                       width: CLOUDINARY_IMAGE_WIDTHS.detail,
                     })}
-                    alt={product.name}
+                    alt={item.name}
                     fill
                     priority
                     unoptimized
@@ -242,24 +199,22 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {media.length > 1 && (
+              {media.length > 1 ? (
                 <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap">
-                  {media.map((item, index) => (
+                  {media.map((image, index) => (
                     <button
-                      key={item.id}
+                      key={image.id}
                       type="button"
-                      onClick={() => handleThumbSelect(index)}
+                      onClick={() => setActiveIndex(index)}
                       className={`relative h-20 w-20 flex-none overflow-hidden rounded-xl border-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 ${
-                        index === activeIndex
-                          ? "border-navy"
-                          : "border-transparent"
+                        index === activeIndex ? "border-navy" : "border-transparent"
                       }`}
                     >
                       <Image
-                        src={cloudinaryImageUrl(item.url, {
+                        src={cloudinaryImageUrl(image.url, {
                           width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
                         })}
-                        alt={`${product.name} thumbnail ${index + 1}`}
+                        alt={`${item.name} thumbnail ${index + 1}`}
                         fill
                         unoptimized
                         className="object-cover"
@@ -268,84 +223,48 @@ export default function ProductDetailPage() {
                     </button>
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="space-y-6 rounded-3xl border border-navy/10 bg-white p-6 shadow-sm sm:p-8">
               <div className="space-y-3">
                 <Link
-                  href={`/shop?category=${product.category?.slug || ""}`}
+                  href={`/custom-gallery?category=${item.category?.slug || ""}`}
                   className="text-sm font-medium text-muted hover:text-navy"
                 >
-                  {product.category?.name || "Category"}
+                  {item.category?.name || "Category"}
                 </Link>
                 <h1 className="font-display text-4xl leading-tight text-navy sm:text-5xl">
-                  {product.name}
+                  {item.name}
                 </h1>
-                <p className="text-2xl font-semibold text-ink">
-                  {formatPrice(product.price)}
-                </p>
-                <p
-                  className={`text-sm font-semibold ${inStock ? "text-emerald-600" : "text-amber-700"}`}
-                >
-                  {inStock ? "In Stock" : "Out of Stock"}
-                </p>
               </div>
 
               <p className="text-sm leading-relaxed text-muted sm:text-base">
-                {product.description || "No description available."}
+                {item.description || "No description available yet for this custom design."}
               </p>
 
               <div className="space-y-3">
-                <p className="text-sm font-medium text-ink">Quantity</p>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setQuantity((current) => Math.max(1, current - 1))
-                    }
-                    disabled={!inStock}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-ink transition hover:border-navy hover:text-navy disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Minus className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <span className="min-w-10 text-center text-lg font-semibold text-ink">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((current) => current + 1)}
-                    disabled={!inStock}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-ink transition hover:border-navy hover:text-navy disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Plus className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
                 <Button
+                  href={buildWhatsAppUrl(item.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   size="lg"
                   variant="primary"
-                  disabled={!inStock}
-                  onClick={handleAddToCart}
                   className="w-full justify-center"
                 >
-                  {inStock ? (
-                    <span className="inline-flex items-center gap-2">
-                      <ShoppingCart className="h-4 w-4" aria-hidden="true" />
-                      Add to Cart
-                    </span>
-                  ) : (
-                    "Out of Stock"
-                  )}
+                  <span className="inline-flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    Enquire on WhatsApp
+                  </span>
                 </Button>
-
-                {toastMessage && (
-                  <div className="rounded-full bg-navy px-4 py-2 text-center text-sm font-medium text-offwhite shadow-lg">
-                    {toastMessage}
-                  </div>
-                )}
+                <Button
+                  href="/contact"
+                  size="lg"
+                  variant="outline"
+                  className="w-full justify-center"
+                >
+                  Contact Us
+                </Button>
               </div>
             </div>
           </div>

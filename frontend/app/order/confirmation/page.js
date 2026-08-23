@@ -10,6 +10,10 @@ import Section from "../../../components/ui/Section";
 import Container from "../../../components/ui/Container";
 import Button from "../../../components/ui/Button";
 
+const CHECKOUT_IDEMPOTENCY_KEY_STORAGE = "qcd_checkout_idempotency_key";
+const CHECKOUT_IDEMPOTENCY_FINGERPRINT_STORAGE =
+  "qcd_checkout_idempotency_fingerprint";
+
 function normalizeStatus(value) {
   return String(value || "")
     .trim()
@@ -18,7 +22,10 @@ function normalizeStatus(value) {
 
 function OrderConfirmationContent() {
   const searchParams = useSearchParams();
-  const reference = useMemo(() => searchParams.get("reference") || "", [searchParams]);
+  const reference = useMemo(
+    () => searchParams.get("reference") || "",
+    [searchParams],
+  );
   const { clearCart } = useCart();
   const cartClearedRef = useRef(false);
 
@@ -63,12 +70,18 @@ function OrderConfirmationContent() {
           return;
         }
 
-        const transactionStatus = normalizeStatus(response?.data?.transaction_status);
+        const transactionStatus = normalizeStatus(
+          response?.data?.transaction_status,
+        );
         const orderStatus = normalizeStatus(response?.data?.order_status);
 
         if (transactionStatus === "success") {
           if (!cartClearedRef.current) {
             clearCart();
+            window.sessionStorage.removeItem(CHECKOUT_IDEMPOTENCY_KEY_STORAGE);
+            window.sessionStorage.removeItem(
+              CHECKOUT_IDEMPOTENCY_FINGERPRINT_STORAGE,
+            );
             cartClearedRef.current = true;
           }
 
@@ -107,7 +120,8 @@ function OrderConfirmationContent() {
         setState({
           kind: "error",
           message:
-            error?.message || "We could not verify this payment right now. Please retry.",
+            error?.message ||
+            "We could not verify this payment right now. Please retry.",
           transactionStatus: "",
           orderStatus: "",
         });
@@ -131,20 +145,25 @@ function OrderConfirmationContent() {
             {getTitle(state.kind)}
           </h1>
 
-          <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">{state.message}</p>
+          <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
+            {state.message}
+          </p>
 
           <div className="mt-6 space-y-2 rounded-2xl bg-offwhite2 p-4 text-sm text-ink">
             <p>
-              <span className="font-semibold">Reference:</span> {reference || "N/A"}
+              <span className="font-semibold">Reference:</span>{" "}
+              {reference || "N/A"}
             </p>
             {state.transactionStatus ? (
               <p>
-                <span className="font-semibold">Transaction status:</span> {state.transactionStatus}
+                <span className="font-semibold">Transaction status:</span>{" "}
+                {state.transactionStatus}
               </p>
             ) : null}
             {state.orderStatus ? (
               <p>
-                <span className="font-semibold">Order status:</span> {state.orderStatus}
+                <span className="font-semibold">Order status:</span>{" "}
+                {state.orderStatus}
               </p>
             ) : null}
           </div>
@@ -155,7 +174,10 @@ function OrderConfirmationContent() {
                 <Button href="/shop" variant="secondary">
                   Continue Shopping
                 </Button>
-                <Link href="/contact" className="text-sm font-medium text-navy hover:underline">
+                <Link
+                  href="/contact"
+                  className="text-sm font-medium text-navy hover:underline"
+                >
                   Need help? Contact support
                 </Link>
               </>
@@ -164,7 +186,10 @@ function OrderConfirmationContent() {
                 <Button href="/checkout" variant="primary">
                   Return to Checkout
                 </Button>
-                <Link href="/contact" className="text-sm font-medium text-navy hover:underline">
+                <Link
+                  href="/contact"
+                  className="text-sm font-medium text-navy hover:underline"
+                >
                   Need help? Contact support
                 </Link>
               </>
