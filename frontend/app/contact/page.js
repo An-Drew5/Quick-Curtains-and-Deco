@@ -15,7 +15,8 @@ const LOCATION = "Kumasi - Tech, Top High";
 const WHATSAPP_GREETING =
   "Hi, I'd like to know more about your curtains and decor services";
 
-export default function ContactPage() {
+// Note: The contact form currently uses a temporary mailto fallback. A backend endpoint (e.g., POST /api/contact) should be implemented for production use.
+  export default function ContactPage() {
   const [form, setForm] = useState({
     name: "",
     email: "",
