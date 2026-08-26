@@ -21,9 +21,27 @@ if (!frontendUrl) {
   );
 }
 
+const allowedOrigins = new Set([
+  frontendUrl,
+  "http://localhost:3000",
+  "http://localhost:3001",
+]);
+
 const app = express();
 
-app.use(cors({ origin: frontendUrl, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin is not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 app.use(cookieParser());
 
 // Signature verification requires the exact raw bytes from Paystack.
