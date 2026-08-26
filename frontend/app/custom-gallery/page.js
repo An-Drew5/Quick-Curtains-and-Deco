@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { PackageSearch } from "lucide-react";
+import { Heart, PackageSearch } from "lucide-react";
 import Section from "../../components/ui/Section";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
@@ -13,6 +13,7 @@ import {
   cloudinaryImageUrl,
   CLOUDINARY_IMAGE_WIDTHS,
 } from "../../lib/cloudinaryImage";
+import useLikes from "../../lib/useLikes";
 
 function GallerySkeletonCard() {
   return (
@@ -37,6 +38,7 @@ export default function CustomGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState("");
+  const { isLiked, toggleLike } = useLikes();
 
   useEffect(() => {
     let active = true;
@@ -126,8 +128,10 @@ export default function CustomGalleryPage() {
           </p>
         </header>
 
-        <div className="space-y-3 rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-ink">Categories</p>
+        <div className="space-y-3 border-y border-navy/15 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            Filter by category
+          </p>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {categoriesLoading
               ? Array.from({ length: 4 }).map((_, index) => (
@@ -147,7 +151,7 @@ export default function CustomGalleryPage() {
                       className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 ${
                         active
                           ? "border-navy bg-navy text-offwhite"
-                          : "border-slate-200 bg-white text-ink hover:border-navy hover:text-navy"
+                          : "border-navy/20 bg-transparent text-ink hover:border-navy hover:text-navy"
                       }`}
                     >
                       {category.name}
@@ -165,15 +169,23 @@ export default function CustomGalleryPage() {
           </div>
         ) : error ? (
           <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center shadow-sm">
-            <p className="font-display text-2xl text-navy">Something went wrong</p>
+            <p className="font-display text-2xl text-navy">
+              Something went wrong
+            </p>
             <p className="mt-2 text-sm text-muted">{error}</p>
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-2xl border border-navy/10 bg-white p-10 text-center shadow-sm">
-            <PackageSearch className="mx-auto h-10 w-10 text-muted" aria-hidden="true" />
-            <h2 className="mt-4 font-display text-2xl text-navy">No gallery items yet</h2>
+            <PackageSearch
+              className="mx-auto h-10 w-10 text-muted"
+              aria-hidden="true"
+            />
+            <h2 className="mt-4 font-display text-2xl text-navy">
+              No gallery items yet
+            </h2>
             <p className="mx-auto mt-2 max-w-xl text-sm text-muted">
-              We are adding more custom inspiration soon. Try another category or check back shortly.
+              We are adding more custom inspiration soon. Try another category
+              or check back shortly.
             </p>
             <div className="mt-6 flex justify-center">
               <Button href="/custom-gallery" variant="secondary">
@@ -182,43 +194,78 @@ export default function CustomGalleryPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+          <div className="columns-2 gap-4 md:columns-3 xl:columns-4">
             {items.map((item, index) => {
               const imageUrl = firstImage(item);
+              const liked = isLiked(item.id);
 
               return (
                 <motion.div
                   key={item.id}
+                  className="mb-4 break-inside-avoid"
                   initial={{ opacity: 0, scale: 0.96, y: 18 }}
                   whileInView={{ opacity: 1, scale: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.35, delay: index * 0.03, ease: "easeOut" }}
+                  transition={{
+                    duration: 0.35,
+                    delay: index * 0.03,
+                    ease: "easeOut",
+                  }}
                 >
                   <Link
                     href={`/custom-gallery/${item.slug}`}
-                    className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-offwhite2"
+                    className="gallery-card group block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-offwhite2"
                   >
-                    <Card className="h-full overflow-hidden p-0">
-                      <div className="relative aspect-[4/5] bg-slate-100">
+                    <Card className="relative overflow-hidden p-0">
+                      <div className="relative max-h-[38rem] overflow-hidden bg-slate-100">
                         {imageUrl ? (
-                          <Image
+                          <img
                             src={cloudinaryImageUrl(imageUrl, {
                               width: CLOUDINARY_IMAGE_WIDTHS.thumbnail,
                             })}
                             alt={item.name}
-                            fill
-                            unoptimized
-                            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="block h-auto max-h-[38rem] w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                            <span className="text-xs font-medium text-muted">Image coming soon</span>
+                            <span className="text-xs font-medium text-muted">
+                              Image coming soon
+                            </span>
                           </div>
                         )}
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="pointer-events-none absolute inset-x-4 bottom-4 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-beige">
+                            {item.category?.name || "Uncategorized"}
+                          </p>
+                          <p className="mt-1 font-display text-xl leading-tight text-offwhite">
+                            {item.name}
+                          </p>
+                        </div>
+                        <motion.button
+                          type="button"
+                          aria-label={
+                            liked ? `Unlike ${item.name}` : `Like ${item.name}`
+                          }
+                          aria-pressed={liked}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleLike(item.id);
+                          }}
+                          animate={{ scale: liked ? [1, 1.22, 1] : 1 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          className={`like-button absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-opacity duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy ${liked ? "text-red-600" : "text-navy"}`}
+                        >
+                          <Heart
+                            className="h-5 w-5"
+                            fill={liked ? "currentColor" : "none"}
+                            strokeWidth={liked ? 2.5 : 1.8}
+                          />
+                        </motion.button>
                       </div>
 
-                      <div className="space-y-2 p-4">
+                      <div className="space-y-2 p-4 group-hover:bg-white">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted">
                           {item.category?.name || "Uncategorized"}
                         </p>
@@ -234,6 +281,18 @@ export default function CustomGalleryPage() {
           </div>
         )}
       </div>
+      <style jsx>{`
+        @media (hover: hover) and (pointer: fine) {
+          .like-button {
+            opacity: 0;
+          }
+
+          .gallery-card:hover .like-button,
+          .gallery-card:focus-within .like-button {
+            opacity: 1;
+          }
+        }
+      `}</style>
     </Section>
   );
 }
